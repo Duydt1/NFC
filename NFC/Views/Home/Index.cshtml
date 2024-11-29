@@ -1,0 +1,432 @@
+﻿@using static NFC.Data.Common.NFCUtil
+@model HomePageViewModel
+@{
+	ViewData["Title"] = "Home Page";
+	var mainList = Model.MainList;
+	var historyList = Model.HistoryHearingList;
+	var productionLines = ViewData["ProductionLines"] as SelectList;
+	var pageSizeOptions = new SelectList(new[] { 10, 25, 50, 100 }, ViewBag.PageSize);
+}
+
+<!-- Info boxes -->
+<div class="row">
+	<div class="col-3">
+		<div class="info-box">
+			<span class="info-box-icon bg-info elevation-1"><i class="fas fa-microchip"></i></span>
+
+			<div class="info-box-content">
+				<span class="info-box-text">Input</span>
+				<span class="info-box-number" id="totalSensor1">
+					@Model.TotalSensor
+				</span>
+			</div>
+			<!-- /.info-box-content -->
+		</div>
+		<!-- /.info-box -->
+	</div>
+	<!-- /.col -->
+	<div class="col-3">
+		<div class="info-box mb-3">
+			<span class="info-box-icon bg-danger elevation-1"><i class="fas fa-tasks"></i></span>
+
+			<div class="info-box-content">
+				<span class="info-box-text">Output</span>
+				<span class="info-box-number" id="hearingPass">@Model.HearingPass</span>
+			</div>
+			<!-- /.info-box-content -->
+		</div>
+		<!-- /.info-box -->
+	</div>
+	<!-- /.col -->
+	<div class="col-md-6">
+		<div class="card">
+			<div class="card-body p-0">
+				<table class="table">
+					<thead>
+						<tr>
+							<th>TASK</th>
+							<th>TOTAL</th>
+							<th>PASS</th>
+							<th>FAIL</th>
+							<th style="width: 40px">Percent (%)</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>SENSOR TEST</td>
+							<td id="totalSensor2">@Model.TotalSensor</td>
+							<td id="sensorPass">@Model.SensorPass</td>
+							<td id="sensorFail">@Model.SensorFail</td>
+							<td><span id="sensorPercent" class="badge bg-danger">@Model.SensorPercent.ToString("F1") %</span></td>
+						</tr>
+						<tr>
+							<td>WF & MIC SPL TEST</td>
+							<td id="totalWF">@Model.TotalWF</td>
+							<td id="wfPass">@Model.WFPass</td>
+							<td id="wfFail">@Model.WFFail</td>
+							<td><span id="wfPercent" class="badge bg-primary">@Model.WFPercent.ToString("F1") %</span></td>
+						</tr>
+						<tr>
+							<td>TW & MIC SPL TEST</td>
+							<td id="totalTW">@Model.TotalTW</td>
+							<td id="twPass">@Model.TWPass</td>
+							<td id="twFail">@Model.TWFail</td>
+							<td><span id="twPercent" class="badge bg-warning">@Model.TWPercent.ToString("F1") %</span></td>
+						</tr>
+						<tr>
+							<td>HEARING TEST</td>
+							<td id="totalHearing">@Model.TotalHearing</td>
+							<td id="hearingPass">@Model.HearingPass</td>
+							<td id="hearingFail">@Model.HearingFail</td>
+							<td><span id="hearingPercent" class="badge bg-success">@Model.HearingPercent.ToString("F1") %</span></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<!-- /.card-body -->
+		</div>
+		<!-- /.card -->
+
+	</div>
+	<!-- /.col -->
+	<!-- fix for small devices only -->
+	<div class="clearfix hidden-md-up"></div>
+</div>
+<!-- /.row -->
+<!-- Main row -->
+<div class="card">
+	<div class="card-header">
+		<form asp-action="Index" method="get">
+
+			<div class="row">
+				<div class="col-md-2">
+					<div class="form-group">
+						<label for="fromDate">From Date:</label>
+						<input id="fromDate" type="datetime-local" name="fromDate" value="@(((DateTime)ViewData["CurrentFromDate"]).ToString("yyyy-MM-ddTHH:mm"))" class="form-control" />
+					</div>
+				</div>
+				<div class="col-md-2">
+					<div class="form-group">
+						<label for="toDate">To Date:</label>
+						<input id="toDate" type="datetime-local" name="toDate" value="@(((DateTime)ViewData["CurrentToDate"]).ToString("yyyy-MM-ddTHH:mm"))" class="form-control" />
+					</div>
+				</div>
+				<div class="col-md-2">
+					<div class="form-group">
+						<label for="productionLineId">Production Line:</label>
+						@Html.DropDownList("productionLineId", (SelectList)ViewData["ProductionLines"], new { @class = "form-control", @id = "productionLineId" })
+					</div>
+				</div>
+				<div class="col-md-2">
+					@* <div class="form-group">
+					<label for="pageSize">Page Size:</label>
+					<select name="pageSize" class="form-control" asp-items="@pageSizeOptions"></select>
+					</div> *@
+				</div>
+				<div class="col-md-4">
+					<div class="form-actions no-color" style="text-align:end">
+						<label></label>
+						<p>
+							@* <input type="text" name="SearchString" value="@ViewData["Searching"]" /> *@
+							<input type="submit" value="Search" class="btn btn-default" />
+						</p>
+					</div>
+				</div>
+
+			</div>
+
+		</form>
+	</div>
+	<!-- /.card-header -->
+	<div class="card-body" style="max-width: 100%; overflow-x: auto;">
+		<table id="mainList" class="table table-bordered table-striped" style="min-width: 1200px">
+			<thead>
+				<tr style="text-align:center">
+					<th colspan="5">
+						SENSOR TEST
+					</th>
+					<th colspan="5">
+						WF & MIC SPL TEST
+					</th>
+					<th colspan="5">
+						TW & MIC SPL TEST
+					</th>
+					<th colspan="5">
+						HEARING TEST
+					</th>
+				</tr>
+				<tr>
+					<th>
+						TOTAL
+					</th>
+					<th>
+						CH
+					</th>
+					<th>
+						PASS
+					</th>
+					<th>
+						NG
+					</th>
+
+					<th>
+						N.G(%)
+					</th>
+
+					<th>
+						TOTAL
+					</th>
+					<th>
+						CH
+					</th>
+					<th>
+						PASS
+					</th>
+					<th>
+						NG
+					</th>
+
+					<th>
+						N.G(%)
+					</th>
+					<th>
+						TOTAL
+					</th>
+					<th>
+						CH
+					</th>
+					<th>
+						PASS
+					</th>
+					<th>
+						NG
+					</th>
+
+					<th>
+						N.G(%)
+					</th>
+					<th>
+						TOTAL
+					</th>
+					<th>
+						CH
+					</th>
+					<th>
+						PASS
+					</th>
+					<th>
+						NG
+					</th>
+
+					<th>
+						N.G(%)
+					</th>
+				</tr>
+			</thead>
+			<tbody>
+				@if (mainList.Any())
+				{
+					@foreach (var item in mainList.OrderBy(x => x.CH))
+					{
+						<tr>
+
+							<td>@(item.SensorTest != null ? item.SensorTest.Total : 0)</td>
+							<td>@item.CH</td>
+							<td>@(item.SensorTest != null ? item.SensorTest.TotalPass : 0)</td>
+							<td>@(item.SensorTest != null ? item.SensorTest.TotalFail : 0)</td>
+							<td>@(item.SensorTest != null ? item.SensorTest.PercentFail : "0%")</td>
+
+							<td>@(item.WFMICTest != null ? item.WFMICTest.Total : 0)</td>
+							<td>@item.CH</td>
+							<td>@(item.WFMICTest != null ? item.WFMICTest.TotalPass : 0)</td>
+							<td>@(item.WFMICTest != null ? item.WFMICTest.TotalFail : 0)</td>
+							<td>
+								@(item.WFMICTest != null ? item.WFMICTest.PercentFail : "0%")
+							</td>
+
+							<td>@(item.TWTest != null ? item.TWTest.Total : 0)</td>
+							<td>@item.CH</td>
+							<td>@(item.TWTest != null ? item.TWTest.TotalPass : 0)</td>
+							<td>@(item.TWTest != null ? item.TWTest.TotalFail : 0)</td>
+							<td>@(item.TWTest != null ? item.TWTest.PercentFail : "0%")</td>
+
+							<td>@(item.HearingTest != null ? item.HearingTest.Total : 0)</td>
+							<td>@item.CH</td>
+							<td>@(item.HearingTest != null ? item.HearingTest.TotalPass : 0)</td>
+							<td>@(item.HearingTest != null ? item.HearingTest.TotalFail : 0)</td>
+							<td>@(item.HearingTest != null ? item.HearingTest.PercentFail : "0%")</td>
+
+						</tr>
+					}
+				}
+			</tbody>
+		</table>
+	</div>
+</div>
+<div class="card col-md-8">
+	<div class="card-header">
+		<h3 class="card-title">Hearing Test</h3>
+
+		@* <div class="card-tools">
+		<div class="input-group input-group-sm" style="width: 150px;">
+		<input type="text" name="table_search" class="form-control float-right" placeholder="Search">
+
+		<div class="input-group-append">
+		<button type="submit" id="table_search" class="btn btn-default ">
+		<i class="fas fa-search"></i>
+		</button>
+		</div>
+		</div>
+		</div> *@
+	</div>
+	<div class="card-body table-responsive p-0" style="height: 500px;">
+		<table id="historyHearing" class="table table-head-fixed text-nowrap">
+			<thead>
+				<tr>
+					<th>NO</th>
+					<th>LINE</th>
+					<th>BARCODE</th>
+					<th>DATE</th>
+					<th>RESULT</th>
+				</tr>
+			</thead>
+			<tbody>
+				@if (historyList.Any())
+				{
+					var i = 0;
+					@foreach (var item in historyList)
+					{
+						<tr>
+
+							<td>@(++i)</td>
+							<td>
+								@{
+									var productionLineId = item.ProductionLineId;
+									var productionLine = productionLines.FirstOrDefault(sl => sl.Value == productionLineId.ToString());
+									var productionLineName = productionLine != null ? productionLine.Text : "Unknown";
+								}
+								@productionLineName
+							</td>
+							<td><a asp-controller="Hearings" asp-action="Details" asp-route-num="@item.NUM">@Html.DisplayFor(modelItem => item.NUM)</a></td>
+							<td>@Html.DisplayFor(modelItem => item.DateTime)</td>
+							<td>@Html.DisplayFor(modelItem => item.Result)</td>
+
+						</tr>
+					}
+				}
+			</tbody>
+		</table>
+	</div>
+</div>
+
+<!-- /.row (main row) -->
+@section Scripts {
+	@{
+		<script>
+			$(document).ready(function () {
+				loadData();
+				setInterval(loadData, 5000);
+				let timeoutId = null;
+				$('#fromDate, #toDate').on('change', function () {
+					if (timeoutId) {
+						clearTimeout(timeoutId);
+					}
+					timeoutId = setTimeout(loadData, 500); // 500ms delay
+				});
+				$('#productionLineId').on('change', function () {
+						loadData();
+					});
+			});
+			function loadData() {
+				var url = '@Url.Action("GetUpdatedData", "Home")';
+				var params = {
+					productionLineId: $("#productionLineId").val(),
+					fromDate: $("#fromDate").val(),
+					toDate: $("#toDate").val()
+				};
+
+				url += "?" + $.param(params);
+				$.ajax({
+					type: "GET",
+					url: url,
+					dataType: "json",
+					success: function (data) {
+						// Assuming `data` is the updated JSON data from your AJAX call
+						$('#totalSensor1').text(data.totalSensor);
+						$('#totalSensor2').text(data.totalSensor);
+						$('#sensorPass').text(data.sensorPass);
+						$('#sensorFail').text(data.sensorFail);
+						$('#sensorPercent').text(data.sensorPercent.toFixed(1) + ' %');
+
+						// Similar updates for the other fields
+						$('#totalWF').text(data.totalWF);
+						$('#wfPass').text(data.wfPass);
+						$('#wfFail').text(data.wfFail);
+						$('#wfPercent').text(data.wfPercent.toFixed(1) + ' %');
+						// Update the main table
+						updateMainTable(data.mainList);
+
+						// Update the history table
+						updateHistoryTable(data.historyHearingList);
+					}
+				});
+			};
+			function updateMainTable(data) {
+				var tableBody = $("#mainList tbody");
+				tableBody.empty();
+
+				$.each(data, function (index, item) {
+					var row = $("<tr>");
+
+					row.append($("<td>").text(item.sensorTest != null ? item.sensorTest.total : 0));
+					row.append($("<td>").text(item.ch));
+					row.append($("<td>").text(item.sensorTest != null ? item.sensorTest.totalPass : 0));
+					row.append($("<td>").text(item.sensorTest != null ? item.sensorTest.totalFail : 0));
+					row.append($("<td>").text(item.sensorTest != null ? item.sensorTest.percentFail : "0%"));
+
+					row.append($("<td>").text(item.wfmicTest != null ? item.wfmicTest.total : 0));
+					row.append($("<td>").text(item.ch));
+					row.append($("<td>").text(item.wfmicTest != null ? item.wfmicTest.totalPass : 0));
+					row.append($("<td>").text(item.wfmicTest != null ? item.wfmicTest.totalFail : 0));
+					row.append($("<td>").text(item.wfmicTest != null ? item.wfmicTest.percentFail : "0%"));
+
+					row.append($("<td>").text(item.twTest != null ? item.twTest.total : 0));
+					row.append($("<td>").text(item.ch));
+					row.append($("<td>").text(item.twTest != null ? item.twTest.totalPass : 0));
+					row.append($("<td>").text(item.twTest != null ? item.twTest.totalFail : 0));
+					row.append($("<td>").text(item.twTest != null ? item.twTest.percentFail : "0%"));
+
+					row.append($("<td>").text(item.hearingTest != null ? item.hearingTest.total : 0));
+					row.append($("<td>").text(item.ch));
+					row.append($("<td>").text(item.hearingTest != null ? item.hearingTest.totalPass : 0));
+					row.append($("<td>").text(item.hearingTest != null ? item.hearingTest.totalFail : 0));
+					row.append($("<td>").text(item.hearingTest != null ? item.hearingTest.percentFail : "0%"));
+
+					tableBody.append(row);
+				});
+			}
+			function updateHistoryTable(data) {
+				var tableBody = $("#historyHearing tbody");
+				tableBody.empty();
+				var productionLines = @Html.Raw(Json.Serialize(productionLines));
+
+				$.each(data, function (index, item) {
+					var row = $("<tr>");
+					// Find the corresponding production line name
+					var productionLine = productionLines.find(function (line) {
+						return line.value === item.productionLineId.toString();
+					});
+					var productionLineName = productionLine ? productionLine.text : "Unknown";
+					row.append($("<td>").text(index + 1));
+					row.append($("<td>").text(productionLineName));
+					row.append($("<td>").html("<a href='/Hearings/Details?num=" + item.num + "'>" + item.num + "</a>"));
+					row.append($("<td>").text(item.dateTime));
+					row.append($("<td>").text(item.result));
+
+					tableBody.append(row);
+				});
+			}
+		</script>
+
+	}
+}
