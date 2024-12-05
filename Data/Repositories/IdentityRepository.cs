@@ -15,9 +15,8 @@ namespace Data.Repositories
         Task<NFCUser> UpdateUserAsync(NFCUser user, string newPass, string curPass);
         Task DeleteUserAsync(NFCUser user);
         Task<bool> CheckExistedDataAsync();
-
-
-		Task<List<IdentityRole>> GetAllRolesAsync();
+        Task SeedDataAsync();
+        Task<List<IdentityRole>> GetAllRolesAsync();
         Task<IdentityRole> GetRoleAsync(string roleId);
         Task<bool> GetRoleExistsAsync(string roleName);
         Task<IdentityResult> CreateRoleAsync(IdentityRole role);
@@ -69,6 +68,72 @@ namespace Data.Repositories
             await _userManager.AddClaimAsync(user, new Claim(ClaimTypes.Role, role.Name));
             await _context.SaveChangesAsync();
             return user;
+        }
+
+        public async Task SeedDataAsync()
+        {
+            // Insert roles if they do not exist
+            var insertRolesQuery = @"
+				IF NOT EXISTS (SELECT 1 FROM AspNetRoles WHERE Name IN ('Admin', 'Create Data', 'View Data'))
+				BEGIN
+					INSERT INTO AspNetRoles (Id, Name, NormalizedName, ConcurrencyStamp)
+					VALUES 
+					(NEWID(), 'Admin', 'ADMIN', NEWID()),
+					(NEWID(), 'Create Data', 'CREATE DATA', NEWID()),
+					(NEWID(), 'View Data', 'VIEW DATA', NEWID());
+				END
+			";
+
+            await _context.Database.ExecuteSqlRawAsync(insertRolesQuery);
+
+            // Insert a default production line if it does not exist
+            var insertProductionLineQuery = @"
+				IF NOT EXISTS (SELECT 1 FROM ProductionLines WHERE Name = 'Line 0')
+				BEGIN
+					INSERT INTO ProductionLines(Name)
+					VALUES ('Line 0');
+				END
+			";
+
+            await _context.Database.ExecuteSqlRawAsync(insertProductionLineQuery);
+
+            // Check if the user already exists
+            var insertUserQuery = @"
+				IF NOT EXISTS (SELECT 1 FROM AspNetUsers WHERE UserName = 'nfc_admin@gmail.com')
+				BEGIN
+					-- Insert user
+					INSERT INTO AspNetUsers 
+					(Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp, PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, AccessFailedCount, ProductionLineId, RoleId)
+					VALUES 
+					(NEWID(), 'nfc_admin@gmail.com', 'NFC_ADMIN@GMAIL.COM', 'nfc_admin@gmail.com', 'NFC_ADMIN@GMAIL.COM', 1, 
+					'AQAAAAIAAYagAAAAEIuXt3ZfMSwN/nnfRUmu1XVaRo3HbGr9D7v7NI9BLUVNXvDShzFYaf3h0Mg9rptHUw==', NEWID(), NEWID(), 0, 0, 1, 0, 
+					(SELECT TOP(1) Id FROM ProductionLines), (SELECT Id FROM AspNetRoles WHERE NormalizedName = 'ADMIN'));
+				END
+				ELSE
+				BEGIN
+					PRINT 'User  already exists. Skipping user insert.';
+				END
+			";
+
+            await _context.Database.ExecuteSqlRawAsync(insertUserQuery);
+
+            // Assign user to role if not already assigned
+            var assignUserRoleQuery = @"
+				DECLARE @UserId UNIQUEIDENTIFIER = (SELECT Id FROM AspNetUsers WHERE NormalizedUserName = 'NFC_ADMIN@GMAIL.COM');
+                DECLARE @RoleId UNIQUEIDENTIFIER = (SELECT Id FROM AspNetRoles WHERE NormalizedName = 'ADMIN');
+
+                IF @UserId IS NOT NULL AND @RoleId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM AspNetUserRoles WHERE UserId = @UserId AND RoleId = @RoleId)
+                BEGIN
+				                INSERT INTO AspNetUserRoles (UserId, RoleId)
+				                VALUES (@UserId, @RoleId);
+                END
+                ELSE
+                BEGIN
+				                PRINT 'User Id or RoleId is NULL or User already assigned to this role. Cannot insert into AspNetUser  Roles.';
+                END
+			";
+
+            await _context.Database.ExecuteSqlRawAsync(assignUserRoleQuery);
         }
 
         public async Task DeleteUserAsync(NFCUser user)

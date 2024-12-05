@@ -47,10 +47,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Data\Data.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Reference Include="Data">
       <HintPath>..\Data\bin\Release\net8.0\Data.dll</HintPath>
     </Reference>

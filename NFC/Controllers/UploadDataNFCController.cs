@@ -46,7 +46,15 @@ namespace NFC.Controllers
 			return new string("OK");
 		}
 
-		[HttpGet("Check")]
+        [HttpGet("SeedData")]
+        public async Task<string> RegisterAsync()
+        {
+            var repo = _serviceProvider.GetService<IIdentityRepository>();
+			await repo.SeedDataAsync();
+            return new string("OK");
+        }
+
+        [HttpGet("Check")]
 		public async Task<CheckNumHearingModel> CheckNUMAsync(string num)
 		{
 			var repository = _serviceProvider.GetService<IHearingRepository>();
